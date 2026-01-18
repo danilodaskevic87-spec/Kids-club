@@ -12,122 +12,69 @@ body {
   background: linear-gradient(#c8f3c2, #f4fff1);
   padding: 20px;
 }
-
 .container {
   max-width: 900px;
   margin: auto;
 }
 
-/* ===== AUTH ===== */
+/* AUTH */
 .auth-box {
   max-width: 360px;
   margin: 80px auto;
   background: white;
   padding: 20px;
   border-radius: 16px;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
 }
-
-.auth-box h2 {
-  text-align: center;
-}
-
 .auth-box input {
   width: 100%;
   padding: 10px;
   margin: 8px 0;
-  border-radius: 10px;
-  border: 1px solid #ccc;
 }
-
 .auth-box button {
   width: 100%;
   padding: 10px;
   background: #43a047;
   border: none;
-  border-radius: 12px;
   color: white;
-  font-size: 16px;
-  cursor: pointer;
+  border-radius: 10px;
 }
-
 .switch {
   text-align: center;
   margin-top: 10px;
   cursor: pointer;
-  color: #2e7d32;
 }
 
-/* ===== PROFILE ===== */
+/* APP */
 .profile {
   background: white;
   border-radius: 20px;
   padding: 20px;
   display: flex;
   gap: 20px;
-  align-items: center;
-  margin-bottom: 30px;
 }
-
 .profile-avatar {
   width: 110px;
   height: 110px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #4caf50;
 }
-
 .balance {
-  font-size: 22px;
-  font-weight: bold;
-  color: #2e7d32;
+  font-size: 20px;
 }
-
-.history-box {
-  margin-top: 10px;
-  max-height: 140px;
-  overflow-y: auto;
-  background: #f1f8e9;
-  padding: 10px;
-  border-radius: 12px;
-  font-size: 14px;
-}
-
-/* ===== SHOP ===== */
 .shop {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
   gap: 20px;
 }
-
 .item {
   background: white;
-  border-radius: 18px;
   padding: 15px;
-  text-align: center;
+  border-radius: 14px;
 }
-
 .shop-image {
   width: 120px;
   height: 120px;
   object-fit: cover;
-  border-radius: 12px;
-}
-
-button.buy {
-  margin-top: 10px;
-  padding: 10px;
-  width: 100%;
-  background: #43a047;
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-}
-
-.logout {
-  margin-top: 10px;
-  background: #c62828;
 }
 </style>
 </head>
@@ -140,29 +87,28 @@ button.buy {
   <h2 id="authTitle">Вхід</h2>
   <input id="email" type="email" placeholder="Email">
   <input id="password" type="password" placeholder="Пароль">
-  <button onclick="login()">Увійти</button>
+  <button onclick="submitAuth()">Увійти</button>
   <div class="switch" onclick="toggleAuth()">Нема акаунту? Реєстрація</div>
 </div>
 
 <!-- APP -->
 <div id="app" style="display:none;">
-
-  <button class="logout" onclick="logout()">Вийти</button>
+  <button onclick="logout()">Вийти</button>
 
   <div class="profile">
     <img id="avatar" class="profile-avatar">
     <div>
       <h2 id="name"></h2>
       <div id="age"></div>
-      <div class="balance">🌲 Токени: <span id="tokens">0</span></div>
-      <div class="history-box" id="history"></div>
+      <div class="balance">Токени: <span id="tokens">0</span></div>
+      <div id="history"></div>
     </div>
   </div>
 
-  <h2>🛒 Магазин</h2>
+  <h2>Магазин</h2>
   <div class="shop" id="shop"></div>
-
 </div>
+
 </div>
 
 <script>
@@ -176,15 +122,13 @@ let userId = null;
 
 function toggleAuth() {
   isRegister = !isRegister;
-  document.getElementById("authTitle").textContent =
+  document.getElementById("authTitle").innerText =
     isRegister ? "Реєстрація" : "Вхід";
-  document.querySelector(".auth-box button").textContent =
-    isRegister ? "Зареєструватися" : "Увійти";
 }
 
-async function login() {
-  const email = email.value;
-  const password = password.value;
+async function submitAuth() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
   let res;
   if (isRegister) {
@@ -223,35 +167,28 @@ async function initUser() {
   });
 
   loadProfile();
-  loadHistory();
   loadShop();
 }
 
 async function loadProfile() {
-  const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
-  avatar.src = data.image_link || "https://via.placeholder.com/150";
-  name.textContent = data.name;
-  age.textContent = data.age ? `Вік: ${data.age}` : "";
-  tokens.textContent = data.tokens;
-}
-
-async function loadHistory() {
   const { data } = await supabase
-    .from("token_history")
+    .from("profiles")
     .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .eq("id", userId)
+    .single();
 
-  history.innerHTML = "";
-  data.forEach(r => {
-    const d = document.createElement("div");
-    d.textContent = `${r.change > 0 ? "+" : ""}${r.change} — ${r.reason}`;
-    history.appendChild(d);
-  });
+  avatar.src = data.image_link || "https://via.placeholder.com/150";
+  name.innerText = data.name;
+  age.innerText = data.age ? `Вік: ${data.age}` : "";
+  tokens.innerText = data.tokens;
 }
 
 async function loadShop() {
-  const { data } = await supabase.from("shop_items").select("*").eq("is_active", true);
+  const { data } = await supabase
+    .from("shop_items")
+    .select("*")
+    .eq("is_active", true);
+
   shop.innerHTML = "";
   data.forEach(item => {
     shop.innerHTML += `
@@ -259,7 +196,7 @@ async function loadShop() {
         <img src="${item.image_link}" class="shop-image">
         <h3>${item.title}</h3>
         <p>${item.price} токенів</p>
-        <button class="buy" onclick="buyItem('${item.id}')">Купити</button>
+        <button onclick="buyItem('${item.id}')">Купити</button>
       </div>
     `;
   });
@@ -269,18 +206,6 @@ async function buyItem(itemId) {
   const { error } = await supabase.rpc("buy_item", { p_item_id: itemId });
   if (error) alert(error.message);
 }
-
-supabase
-  .channel("realtime")
-  .on(
-    "postgres_changes",
-    { event: "INSERT", schema: "public", table: "token_history" },
-    () => {
-      loadProfile();
-      loadHistory();
-    }
-  )
-  .subscribe();
 
 initUser();
 </script>

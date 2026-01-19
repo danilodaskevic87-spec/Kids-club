@@ -2,144 +2,98 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>Kids Club 🌲</title>
+<title>Kids Club</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:linear-gradient(#c8f3c2,#f4fff1);
-  padding:20px;
-}
-.container{max-width:1000px;margin:auto}
-
-/* AUTH */
-.auth{
-  max-width:360px;
-  margin:80px auto;
-  background:#fff;
-  padding:20px;
-  border-radius:18px;
-  box-shadow:0 10px 25px rgba(0,0,0,.15)
-}
-.auth input{
-  width:100%;
-  padding:12px;
-  margin:6px 0;
-  border-radius:10px;
-  border:1px solid #ccc
-}
-.auth button{
-  width:100%;
-  padding:12px;
-  background:#43a047;
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-size:16px
-}
-.switch{text-align:center;margin-top:10px;cursor:pointer}
-
-/* PROFILE */
-.profile{
-  background:#fff;
-  border-radius:22px;
-  padding:20px;
-  display:flex;
-  gap:20px;
-  align-items:center;
-  box-shadow:0 8px 20px rgba(0,0,0,.1);
-  margin-bottom:30px
-}
-.avatar{
-  width:110px;
-  height:110px;
-  border-radius:50%;
-  object-fit:cover;
-  border:4px solid #4caf50
-}
-.balance{
-  font-size:22px;
-  font-weight:bold;
-  color:#2e7d32
-}
-.history{
-  margin-top:10px;
-  background:#f1f8e9;
-  padding:10px;
-  border-radius:12px;
-  max-height:140px;
-  overflow-y:auto;
-  font-size:14px
-}
-
-/* SHOP */
-.shop{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:20px
-}
-.item{
-  background:#fff;
-  border-radius:18px;
-  padding:15px;
-  text-align:center;
-  box-shadow:0 6px 14px rgba(0,0,0,.1)
-}
-.shop-image{
-  width:120px;
-  height:120px;
-  object-fit:cover;
-  border-radius:12px
-}
-.buy{
-  margin-top:8px;
-  padding:10px;
-  width:100%;
-  background:#43a047;
-  border:none;
-  border-radius:10px;
-  color:#fff;
-  font-size:15px
-}
-.logout{
-  background:#c62828;
-  color:#fff;
-  border:none;
-  border-radius:8px;
-  padding:8px 12px;
-  margin-bottom:10px
-}
+body{font-family:Arial;background:#e8f5e9;padding:20px}
+.auth,.app{max-width:400px;margin:auto;background:#fff;padding:20px;border-radius:12px}
+button{padding:10px;width:100%;margin-top:10px}
+.hidden{display:none}
 </style>
 </head>
 
 <body>
-<div class="container">
 
-<!-- AUTH -->
-<div id="auth" class="auth">
-  <h2 id="authTitle">Вхід</h2>
-  <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Пароль (мін. 6)">
-  <button onclick="submitAuth()">Увійти</button>
-  <div class="switch" onclick="toggleAuth()">Нема акаунту? Реєстрація</div>
+<div class="auth" id="authBox">
+  <h2 id="title">Вхід</h2>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Пароль (мін 6)">
+  <button id="submitBtn">Увійти</button>
+  <button id="switchBtn">Реєстрація</button>
 </div>
 
-<!-- APP -->
-<div id="app" style="display:none">
-  <button class="logout" onclick="logout()">Вийти</button>
+<div class="app hidden" id="appBox">
+  <h2>Профіль</h2>
+  <div id="profileInfo"></div>
+  <button id="logoutBtn">Вийти</button>
+</div>
 
-  <!-- PROFILE -->
-  <div class="profile">
-    <img id="avatar" class="avatar">
-    <div>
-      <h2 id="name"></h2>
-      <div id="age"></div>
-      <div class="balance">🌲 Токени: <span id="tokens">0</span></div>
-      <div class="history" id="history"></div>
-    </div>
-  </div>
+<script>
+const sb = supabase.createClient(
+  "https://ljwbrffqkttuvqnzeyur.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd2JyZmZxa3R0dXZxbnpleXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NTcxMDgsImV4cCI6MjA4NDMzMzEwOH0.81mAhg6ai_MJHr7WZe5cnp5CLEVWmfDiXxu_HxxSOJU"
+);
 
-  <!-- SHOP -->
-  <h2>🛒 Магазин</h
+let isRegister = false;
+
+/* ELEMENTS */
+const authBox = document.getElementById("authBox");
+const appBox = document.getElementById("appBox");
+const submitBtn = document.getElementById("submitBtn");
+const switchBtn = document.getElementById("switchBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+/* EVENTS */
+switchBtn.addEventListener("click", () => {
+  isRegister = !isRegister;
+  document.getElementById("title").innerText =
+    isRegister ? "Реєстрація" : "Вхід";
+  submitBtn.innerText =
+    isRegister ? "Зареєструватись" : "Увійти";
+});
+
+submitBtn.addEventListener("click", async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if (password.length < 6) {
+    alert("Пароль мінімум 6 символів");
+    return;
+  }
+
+  const res = isRegister
+    ? await sb.auth.signUp({ email, password })
+    : await sb.auth.signInWithPassword({ email, password });
+
+  if (res.error) {
+    alert(res.error.message);
+    return;
+  }
+
+  showProfile();
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await sb.auth.signOut();
+  location.reload();
+});
+
+/* PROFILE */
+async function showProfile(){
+  const { data } = await sb.auth.getUser();
+  if (!data.user) return;
+
+  authBox.classList.add("hidden");
+  appBox.classList.remove("hidden");
+
+  document.getElementById("profileInfo").innerText =
+    `Email: ${data.user.email}\nUUID: ${data.user.id}`;
+}
+
+/* AUTO LOGIN */
+showProfile();
+</script>
+
+</body>
+</html>

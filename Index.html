@@ -44,8 +44,8 @@ const sb = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd2JyZmZxa3R0dXZxbnpleXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NTcxMDgsImV4cCI6MjA4NDMzMzEwOH0.81mAhg6ai_MJHr7WZe5cnp5CLEVWmfDiXxu_HxxSOJU"
 );
 
-const authBox = document.getElementById("auth");
-const appBox = document.getElementById("app");
+const authBox = auth;
+const appBox = app;
 
 async function ensureProfile(uid){
   const { data } = await sb.from("profiles").select("*").eq("id",uid).single();
@@ -62,11 +62,15 @@ async function loadProfile(uid){
 }
 
 async function loadHistory(uid){
-  const { data } = await sb.from("token_history")
-    .select("*").eq("user_id",uid).order("created_at",{ascending:false});
+  const { data } = await sb
+    .from("token_history")
+    .select("*")
+    .eq("user_id",uid)
+    .order("created_at",{ascending:false});
+
   history.innerHTML="";
   data.forEach(r=>{
-    history.innerHTML += `<div>${r.change} — ${r.reason}</div>`;
+    history.innerHTML += `<div>${r.change>0?"+":""}${r.change} — ${r.reason}</div>`;
   });
 }
 

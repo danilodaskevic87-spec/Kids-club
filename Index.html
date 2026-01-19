@@ -4,28 +4,37 @@
 <meta charset="UTF-8">
 <title>Kids Club</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 body{font-family:Arial;background:#e8f5e9;padding:20px}
-.auth,.app{max-width:400px;margin:auto;background:#fff;padding:20px;border-radius:12px}
-button{padding:10px;width:100%;margin-top:10px}
+.box{background:#fff;padding:20px;border-radius:12px;max-width:600px;margin:auto}
 .hidden{display:none}
+.shop{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.item{border:1px solid #ccc;padding:10px;border-radius:10px}
 </style>
 </head>
 
 <body>
 
-<div class="auth" id="authBox">
-  <h2 id="title">Вхід</h2>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Пароль (мін 6)">
-  <button id="submitBtn">Увійти</button>
-  <button id="switchBtn">Реєстрація</button>
+<div class="box" id="auth">
+  <h2>Вхід / Реєстрація</h2>
+  <input id="email" placeholder="Email"><br><br>
+  <input id="password" type="password" placeholder="Пароль"><br><br>
+  <button id="loginBtn">Увійти</button>
+  <button id="regBtn">Реєстрація</button>
 </div>
 
-<div class="app hidden" id="appBox">
-  <h2>Профіль</h2>
-  <div id="profileInfo"></div>
+<div class="box hidden" id="app">
+  <h2 id="name"></h2>
+  <div id="age"></div>
+  <b>Токени:</b> <span id="tokens"></span>
+
+  <h3>📜 Історія</h3>
+  <div id="history"></div>
+
+  <h3>🛒 Магазин</h3>
+  <div class="shop" id="shop"></div>
+
+  <br>
   <button id="logoutBtn">Вийти</button>
 </div>
 
@@ -35,65 +44,76 @@ const sb = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd2JyZmZxa3R0dXZxbnpleXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NTcxMDgsImV4cCI6MjA4NDMzMzEwOH0.81mAhg6ai_MJHr7WZe5cnp5CLEVWmfDiXxu_HxxSOJU"
 );
 
-let isRegister = false;
+const authBox = document.getElementById("auth");
+const appBox = document.getElementById("app");
 
-/* ELEMENTS */
-const authBox = document.getElementById("authBox");
-const appBox = document.getElementById("appBox");
-const submitBtn = document.getElementById("submitBtn");
-const switchBtn = document.getElementById("switchBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-
-/* EVENTS */
-switchBtn.addEventListener("click", () => {
-  isRegister = !isRegister;
-  document.getElementById("title").innerText =
-    isRegister ? "Реєстрація" : "Вхід";
-  submitBtn.innerText =
-    isRegister ? "Зареєструватись" : "Увійти";
-});
-
-submitBtn.addEventListener("click", async () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  if (password.length < 6) {
-    alert("Пароль мінімум 6 символів");
-    return;
+async function ensureProfile(uid){
+  const { data } = await sb.from("profiles").select("*").eq("id",uid).single();
+  if(!data){
+    await sb.from("profiles").insert({id:uid});
   }
-
-  const res = isRegister
-    ? await sb.auth.signUp({ email, password })
-    : await sb.auth.signInWithPassword({ email, password });
-
-  if (res.error) {
-    alert(res.error.message);
-    return;
-  }
-
-  showProfile();
-});
-
-logoutBtn.addEventListener("click", async () => {
-  await sb.auth.signOut();
-  location.reload();
-});
-
-/* PROFILE */
-async function showProfile(){
-  const { data } = await sb.auth.getUser();
-  if (!data.user) return;
-
-  authBox.classList.add("hidden");
-  appBox.classList.remove("hidden");
-
-  document.getElementById("profileInfo").innerText =
-    `Email: ${data.user.email}\nUUID: ${data.user.id}`;
 }
 
-/* AUTO LOGIN */
-showProfile();
-</script>
+async function loadProfile(uid){
+  const { data } = await sb.from("profiles").select("*").eq("id",uid).single();
+  name.innerText = data.name;
+  age.innerText = "Вік: " + data.age;
+  tokens.innerText = data.tokens;
+}
 
+async function loadHistory(uid){
+  const { data } = await sb.from("token_history")
+    .select("*").eq("user_id",uid).order("created_at",{ascending:false});
+  history.innerHTML="";
+  data.forEach(r=>{
+    history.innerHTML += `<div>${r.change} — ${r.reason}</div>`;
+  });
+}
+
+async function loadShop(){
+  const { data } = await sb.from("shop_items").select("*").eq("is_active",true);
+  shop.innerHTML="";
+  data.forEach(i=>{
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML=`${i.title}<br>${i.price} токенів<br>
+      <button>Купити</button>`;
+    d.querySelector("button").onclick=()=>buy(i.id);
+    shop.appendChild(d);
+  });
+}
+
+async function buy(id){
+  const r = await sb.rpc("buy_item",{p_item_id:id});
+  if(r.error) alert(r.error.message);
+  start();
+}
+
+async function start(){
+  const { data } = await sb.auth.getUser();
+  if(!data.user) return;
+  authBox.classList.add("hidden");
+  appBox.classList.remove("hidden");
+  await ensureProfile(data.user.id);
+  await loadProfile(data.user.id);
+  await loadHistory(data.user.id);
+  await loadShop();
+}
+
+loginBtn.onclick = async()=>{
+  await sb.auth.signInWithPassword({email:email.value,password:password.value});
+  start();
+};
+regBtn.onclick = async()=>{
+  await sb.auth.signUp({email:email.value,password:password.value});
+  start();
+};
+logoutBtn.onclick = async()=>{
+  await sb.auth.signOut();
+  location.reload();
+};
+
+start();
+</script>
 </body>
 </html>

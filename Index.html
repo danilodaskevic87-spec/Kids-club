@@ -2,79 +2,132 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>Kids Club • Ліс</title>
+<title>Kids Club 🌲</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
   background: linear-gradient(#c8f3c2, #f4fff1);
   padding: 20px;
 }
+
+h2,h3 { margin: 6px 0; }
+
 .container {
-  max-width: 900px;
+  max-width: 1000px;
   margin: auto;
 }
 
-/* AUTH */
+/* ===== AUTH ===== */
 .auth-box {
   max-width: 360px;
   margin: 80px auto;
   background: white;
-  padding: 20px;
-  border-radius: 16px;
+  padding: 22px;
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.15);
 }
+
 .auth-box input {
   width: 100%;
-  padding: 10px;
-  margin: 8px 0;
+  padding: 12px;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: 1px solid #ccc;
 }
+
 .auth-box button {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background: #43a047;
   border: none;
+  border-radius: 12px;
   color: white;
-  border-radius: 10px;
+  font-size: 16px;
 }
+
 .switch {
   text-align: center;
   margin-top: 10px;
   cursor: pointer;
+  color: #2e7d32;
 }
 
-/* APP */
+/* ===== PROFILE ===== */
 .profile {
   background: white;
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 20px;
   display: flex;
   gap: 20px;
+  align-items: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,.1);
+  margin-bottom: 30px;
 }
-.profile-avatar {
+
+.avatar {
   width: 110px;
   height: 110px;
   border-radius: 50%;
   object-fit: cover;
+  border: 4px solid #4caf50;
 }
+
 .balance {
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #2e7d32;
 }
+
+.history {
+  margin-top: 10px;
+  background: #f1f8e9;
+  padding: 10px;
+  border-radius: 12px;
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+/* ===== SHOP ===== */
 .shop {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
   gap: 20px;
 }
+
 .item {
   background: white;
+  border-radius: 18px;
   padding: 15px;
-  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(0,0,0,.1);
 }
+
 .shop-image {
   width: 120px;
   height: 120px;
   object-fit: cover;
+  border-radius: 12px;
+}
+
+.buy {
+  margin-top: 8px;
+  padding: 10px;
+  width: 100%;
+  background: #43a047;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 15px;
+}
+
+.logout {
+  margin-bottom: 15px;
+  background: #c62828;
 }
 </style>
 </head>
@@ -86,33 +139,36 @@ body {
 <div id="auth" class="auth-box">
   <h2 id="authTitle">Вхід</h2>
   <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Пароль">
+  <input id="password" type="password" placeholder="Пароль (мін. 6)">
   <button onclick="submitAuth()">Увійти</button>
   <div class="switch" onclick="toggleAuth()">Нема акаунту? Реєстрація</div>
 </div>
 
 <!-- APP -->
 <div id="app" style="display:none;">
-  <button onclick="logout()">Вийти</button>
 
+  <button class="logout" onclick="logout()">Вийти</button>
+
+  <!-- PROFILE -->
   <div class="profile">
-    <img id="avatar" class="profile-avatar">
+    <img id="avatar" class="avatar">
     <div>
       <h2 id="name"></h2>
       <div id="age"></div>
-      <div class="balance">Токени: <span id="tokens">0</span></div>
-      <div id="history"></div>
+      <div class="balance">🌲 Токени: <span id="tokens">0</span></div>
+      <div class="history" id="history"></div>
     </div>
   </div>
 
-  <h2>Магазин</h2>
+  <!-- SHOP -->
+  <h2>🛒 Магазин</h2>
   <div class="shop" id="shop"></div>
-</div>
 
+</div>
 </div>
 
 <script>
-const supabase = supabase.createClient(
+const sb = supabase.createClient(
   "https://ljwbrffqkttuvqnzeyur.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd2JyZmZxa3R0dXZxbnpleXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NTcxMDgsImV4cCI6MjA4NDMzMzEwOH0.81mAhg6ai_MJHr7WZe5cnp5CLEVWmfDiXxu_HxxSOJU"
 );
@@ -120,46 +176,38 @@ const supabase = supabase.createClient(
 let isRegister = false;
 let userId = null;
 
-function toggleAuth() {
+function toggleAuth(){
   isRegister = !isRegister;
-  document.getElementById("authTitle").innerText =
-    isRegister ? "Реєстрація" : "Вхід";
+  authTitle.innerText = isRegister ? "Реєстрація" : "Вхід";
 }
 
-async function submitAuth() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+async function submitAuth(){
+  const e = email.value;
+  const p = password.value;
+  if (p.length < 6) return alert("Пароль мінімум 6 символів");
 
-  let res;
-  if (isRegister) {
-    res = await supabase.auth.signUp({ email, password });
-  } else {
-    res = await supabase.auth.signInWithPassword({ email, password });
-  }
+  const r = isRegister
+    ? await sb.auth.signUp({ email:e, password:p })
+    : await sb.auth.signInWithPassword({ email:e, password:p });
 
-  if (res.error) {
-    alert(res.error.message);
-    return;
-  }
-
-  initUser();
+  if (r.error) return alert(r.error.message);
+  initApp();
 }
 
-async function logout() {
-  await supabase.auth.signOut();
+async function logout(){
+  await sb.auth.signOut();
   location.reload();
 }
 
-async function initUser() {
-  const { data } = await supabase.auth.getUser();
+async function initApp(){
+  const { data } = await sb.auth.getUser();
   if (!data.user) return;
 
   userId = data.user.id;
+  auth.style.display = "none";
+  app.style.display = "block";
 
-  document.getElementById("auth").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  await supabase.from("profiles").upsert({
+  await sb.from("profiles").upsert({
     id: userId,
     name: "Дитина",
     age: 7,
@@ -167,47 +215,56 @@ async function initUser() {
   });
 
   loadProfile();
+  loadHistory();
   loadShop();
 }
 
-async function loadProfile() {
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
-
+async function loadProfile(){
+  const { data } = await sb.from("profiles").select("*").eq("id", userId).single();
   avatar.src = data.image_link || "https://via.placeholder.com/150";
   name.innerText = data.name;
   age.innerText = data.age ? `Вік: ${data.age}` : "";
   tokens.innerText = data.tokens;
 }
 
-async function loadShop() {
-  const { data } = await supabase
-    .from("shop_items")
-    .select("*")
-    .eq("is_active", true);
+async function loadHistory(){
+  const { data } = await sb.from("token_history")
+    .select("*").eq("user_id", userId)
+    .order("created_at", { ascending:false });
 
-  shop.innerHTML = "";
-  data.forEach(item => {
-    shop.innerHTML += `
-      <div class="item">
-        <img src="${item.image_link}" class="shop-image">
-        <h3>${item.title}</h3>
-        <p>${item.price} токенів</p>
-        <button onclick="buyItem('${item.id}')">Купити</button>
-      </div>
-    `;
+  history.innerHTML = "";
+  data.forEach(r=>{
+    const d = document.createElement("div");
+    d.textContent = `${r.change>0?"+":""}${r.change} — ${r.reason}`;
+    history.appendChild(d);
   });
 }
 
-async function buyItem(itemId) {
-  const { error } = await supabase.rpc("buy_item", { p_item_id: itemId });
+async function loadShop(){
+  const { data } = await sb.from("shop_items").select("*").eq("is_active", true);
+  shop.innerHTML = "";
+  data.forEach(i=>{
+    shop.innerHTML += `
+      <div class="item">
+        <img src="${i.image_link}" class="shop-image">
+        <h3>${i.title}</h3>
+        <p>${i.price} токенів</p>
+        <button class="buy" onclick="buyItem('${i.id}')">Купити</button>
+      </div>`;
+  });
+}
+
+async function buyItem(id){
+  const { error } = await sb.rpc("buy_item", { p_item_id:id });
   if (error) alert(error.message);
 }
 
-initUser();
+sb.channel("rt")
+  .on("postgres_changes",{event:"INSERT",schema:"public",table:"token_history"},
+    ()=>{ loadProfile(); loadHistory(); })
+  .subscribe();
+
+initApp();
 </script>
 </body>
 </html>

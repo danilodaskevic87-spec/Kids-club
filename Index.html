@@ -4,61 +4,142 @@
 <meta charset="UTF-8">
 <title>Kids Club</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body{font-family:Arial;background:#e8f5e9;padding:20px}
-.box{background:#fff;padding:20px;border-radius:12px;max-width:600px;margin:auto}
+body{
+  font-family:Arial,sans-serif;
+  background:#e8f5e9;
+  padding:20px;
+}
 .hidden{display:none}
-.shop{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.item{border:1px solid #ccc;padding:10px;border-radius:10px}
+.box{
+  background:#fff;
+  padding:20px;
+  border-radius:14px;
+  max-width:700px;
+  margin:20px auto;
+  box-shadow:0 6px 15px rgba(0,0,0,.15)
+}
+input,button{
+  padding:10px;
+  width:100%;
+  margin-top:8px;
+}
+button{cursor:pointer}
+.profile{
+  display:flex;
+  gap:20px;
+  align-items:center;
+}
+.avatar{
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  object-fit:cover;
+  border:4px solid #4caf50;
+}
+.balance{
+  font-size:20px;
+  color:#2e7d32;
+  font-weight:bold;
+}
+.history{
+  background:#f1f8e9;
+  padding:10px;
+  border-radius:12px;
+  max-height:160px;
+  overflow-y:auto;
+  font-size:14px;
+}
+.shop{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+.item{
+  border:1px solid #ccc;
+  border-radius:12px;
+  padding:10px;
+  text-align:center;
+}
+.item img{
+  width:100px;
+  height:100px;
+  object-fit:cover;
+  border-radius:10px;
+}
+.logout{
+  background:#c62828;
+  color:#fff;
+}
 </style>
 </head>
 
 <body>
 
-<div class="box" id="auth">
+<!-- AUTH -->
+<div class="box" id="authBox">
   <h2>Вхід / Реєстрація</h2>
-  <input id="email" placeholder="Email"><br><br>
-  <input id="password" type="password" placeholder="Пароль"><br><br>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Пароль (мін. 6)">
   <button id="loginBtn">Увійти</button>
   <button id="regBtn">Реєстрація</button>
 </div>
 
-<div class="box hidden" id="app">
-  <h2 id="name"></h2>
-  <div id="age"></div>
-  <b>Токени:</b> <span id="tokens"></span>
+<!-- APP -->
+<div class="box hidden" id="appBox">
 
+  <!-- PROFILE -->
+  <div class="profile">
+    <img id="avatar" class="avatar">
+    <div>
+      <h2 id="name"></h2>
+      <div id="age"></div>
+      <div class="balance">🌲 Токени: <span id="tokens"></span></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
   <h3>📜 Історія</h3>
-  <div id="history"></div>
+  <div id="history" class="history"></div>
 
+  <!-- SHOP -->
   <h3>🛒 Магазин</h3>
-  <div class="shop" id="shop"></div>
+  <div id="shop" class="shop"></div>
 
   <br>
-  <button id="logoutBtn">Вийти</button>
+  <button class="logout" id="logoutBtn">Вийти</button>
 </div>
 
 <script>
+/* SUPABASE */
 const sb = supabase.createClient(
   "https://ljwbrffqkttuvqnzeyur.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd2JyZmZxa3R0dXZxbnpleXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NTcxMDgsImV4cCI6MjA4NDMzMzEwOH0.81mAhg6ai_MJHr7WZe5cnp5CLEVWmfDiXxu_HxxSOJU"
 );
 
-const authBox = auth;
-const appBox = app;
+const authBox = document.getElementById("authBox");
+const appBox  = document.getElementById("appBox");
 
 async function ensureProfile(uid){
   const { data } = await sb.from("profiles").select("*").eq("id",uid).single();
   if(!data){
-    await sb.from("profiles").insert({id:uid});
+    await sb.from("profiles").insert({
+      id: uid,
+      name: "Дитина",
+      age: 7,
+      tokens: 0
+    });
   }
 }
 
 async function loadProfile(uid){
   const { data } = await sb.from("profiles").select("*").eq("id",uid).single();
-  name.innerText = data.name;
-  age.innerText = "Вік: " + data.age;
-  tokens.innerText = data.tokens;
+  document.getElementById("name").innerText = data.name;
+  document.getElementById("age").innerText  = "Вік: " + data.age;
+  document.getElementById("tokens").innerText = data.tokens;
+  document.getElementById("avatar").src =
+    data.image_link || "https://via.placeholder.com/150";
 }
 
 async function loadHistory(uid){
@@ -68,56 +149,82 @@ async function loadHistory(uid){
     .eq("user_id",uid)
     .order("created_at",{ascending:false});
 
-  history.innerHTML="";
+  const h = document.getElementById("history");
+  h.innerHTML = "";
   data.forEach(r=>{
-    history.innerHTML += `<div>${r.change>0?"+":""}${r.change} — ${r.reason}</div>`;
+    const row = document.createElement("div");
+    row.textContent =
+      `${r.change>0?"+":""}${r.change} — ${r.reason}`;
+    h.appendChild(row);
   });
 }
 
 async function loadShop(){
-  const { data } = await sb.from("shop_items").select("*").eq("is_active",true);
-  shop.innerHTML="";
+  const { data } = await sb
+    .from("shop_items")
+    .select("*")
+    .eq("is_active",true);
+
+  const s = document.getElementById("shop");
+  s.innerHTML = "";
   data.forEach(i=>{
-    const d=document.createElement("div");
-    d.className="item";
-    d.innerHTML=`${i.title}<br>${i.price} токенів<br>
-      <button>Купити</button>`;
-    d.querySelector("button").onclick=()=>buy(i.id);
-    shop.appendChild(d);
+    const d = document.createElement("div");
+    d.className = "item";
+    d.innerHTML = `
+      <img src="${i.image_link}">
+      <div><b>${i.title}</b></div>
+      <div>${i.price} токенів</div>
+      <button>Купити</button>
+    `;
+    d.querySelector("button").addEventListener("click",()=>buyItem(i.id));
+    s.appendChild(d);
   });
 }
 
-async function buy(id){
+async function buyItem(id){
   const r = await sb.rpc("buy_item",{p_item_id:id});
-  if(r.error) alert(r.error.message);
-  start();
+  if(r.error) return alert(r.error.message);
+  startApp();
 }
 
-async function start(){
+async function startApp(){
   const { data } = await sb.auth.getUser();
   if(!data.user) return;
+
   authBox.classList.add("hidden");
   appBox.classList.remove("hidden");
-  await ensureProfile(data.user.id);
-  await loadProfile(data.user.id);
-  await loadHistory(data.user.id);
+
+  const uid = data.user.id;
+  await ensureProfile(uid);
+  await loadProfile(uid);
+  await loadHistory(uid);
   await loadShop();
 }
 
-loginBtn.onclick = async()=>{
-  await sb.auth.signInWithPassword({email:email.value,password:password.value});
-  start();
-};
-regBtn.onclick = async()=>{
-  await sb.auth.signUp({email:email.value,password:password.value});
-  start();
-};
-logoutBtn.onclick = async()=>{
+/* AUTH */
+document.getElementById("loginBtn").addEventListener("click",async()=>{
+  await sb.auth.signInWithPassword({
+    email: email.value,
+    password: password.value
+  });
+  startApp();
+});
+
+document.getElementById("regBtn").addEventListener("click",async()=>{
+  await sb.auth.signUp({
+    email: email.value,
+    password: password.value
+  });
+  startApp();
+});
+
+document.getElementById("logoutBtn").addEventListener("click",async()=>{
   await sb.auth.signOut();
   location.reload();
-};
+});
 
-start();
+/* AUTO START */
+startApp();
 </script>
 </body>
 </html>
